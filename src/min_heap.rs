@@ -1,4 +1,5 @@
 use std::{cmp::Reverse, collections::BinaryHeap};
+use crate::board::Board;
 
 /// A very straightforward implementation of a min-heap.
 ///

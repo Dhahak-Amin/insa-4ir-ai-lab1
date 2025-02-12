@@ -308,3 +308,48 @@ mod tests {
         assert!(!board.is_valid_plan(&[Left]));
     }
 }
+
+
+/*
+#[cfg(test)]
+mod test {
+    use super::*;
+    use std::collections::HashMap;
+    use std::time::Duration;
+    use crate::search::search;
+
+    #[test]
+    fn test_search_on_instances() {
+        let mut runtime_per_distance: HashMap<u32, Vec<u128>> = HashMap::new();
+        let mut expanded_nodes_per_distance: HashMap<u32, Vec<usize>> = HashMap::new();
+
+        for (expected_cost, init) in &INSTANCES {
+            let (path, stats) = search(*init,);
+            let path = path.expect("no plan");
+            assert!(init.is_valid_plan(&path));
+            assert_eq!(path.len(), *expected_cost as usize);
+
+            // Stocke les statistiques
+            runtime_per_distance.entry(*expected_cost)
+                .or_insert_with(Vec::new)
+                .push(stats.runtime.as_millis());
+
+            expanded_nodes_per_distance.entry(*expected_cost)
+                .or_insert_with(Vec::new)
+                .push(stats.expanded);
+        }
+
+        // Affiche les statistiques pour analyse
+        for (distance, runtimes) in &runtime_per_distance {
+            let avg_runtime = runtimes.iter().sum::<u128>() as f64 / runtimes.len() as f64;
+            println!("Distance {} -> Avg Runtime: {:.2} ms", distance, avg_runtime);
+        }
+
+        for (distance, expanded_nodes) in &expanded_nodes_per_distance {
+            let avg_expanded = expanded_nodes.iter().sum::<usize>() as f64 / expanded_nodes.len() as f64;
+            println!("Distance {} -> Avg Nodes Expanded: {:.2}", distance, avg_expanded);
+        }
+    }
+}
+
+ */

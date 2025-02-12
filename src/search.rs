@@ -2,7 +2,7 @@ use crate::board::*;
 use crate::heuristics::*;
 use crate::min_heap::*;
 use std::collections::*;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 /// Statistics of the search, used to evaluate the performance of the search algorithms.
 /// Feel free to add more fields to this struct if you need them.
@@ -12,9 +12,9 @@ pub struct Stats {
     /// Total runtime spend in the search.
     ///
     /// ```rust
-    /// let start_time: Instant = std::time::Instant::now();
+    // let start_time: Instant = std::time::Instant::now();
     /// // do something
-    /// let runtime: Duration = start_time.elapsed();
+   // let runtime: Duration = start_time.elapsed();
     /// ```
     pub runtime: Duration,
 }
@@ -26,36 +26,66 @@ impl Stats {
     }
 }
 
-pub fn search(init_state: Board) -> (Option<Vec<Direction>>, Stats) {
-    let start = std::time::Instant::now();
-    // MinHeap provide allows to store the states to explore, with associated priority
-    let mut heap: MinHeap<Board> = MinHeap::new();
-    // the standard library provides a HashMap, that can be used to store the cost or other things
-    let mut costs: HashMap<Board, u32> = HashMap::new();
-    // ...
 
-    // here is an example to measure the runtime and returns the statistics
-    let runtime = start.elapsed();
-    // example to construct a Stats instance
-    let stats = Stats::new(0, runtime);
-    // return the results and associated stats
-    (todo!(), stats)
+pub fn search(init_state: Board,heuristic: &Heuristic) -> (Option<Vec<Direction>>, Stats) {
+    let start = Instant::now();
+    let mut heap = MinHeap::new();
+    let mut costs = HashMap::new();
+    let mut came_from = HashMap::new(); // Stocke l'état précédent pour reconstruire le chemin
+    let mut expanded = 0;
+
+    let initial_cost = heuristic.estimate(&init_state);
+
+    heap.insert(init_state.clone(), 0);
+    costs.insert(init_state.clone(), initial_cost);
+    came_from.insert(init_state.clone(), None);
+
+
+    while let Some(state) = heap.pop() {
+        if state == Board::GOAL {
+            let mut path = Vec::new();
+            let mut current = &state;
+            while let Some(Some((prev, dir))) = came_from.get(current) {
+                path.push(*dir);
+                current = prev;
+            }
+            path.reverse();
+            return (Some(path), Stats::new(expanded, start.elapsed()));
+        }
+
+        expanded += 1;
+        let cost = costs[&state] + 1;
+
+        for &dir in &DIRECTIONS {
+            if let Some(new_state) = state.apply(dir) {
+                let new_cost = cost + heuristic.estimate(&new_state);
+
+                if !costs.contains_key(&new_state) || cost < costs[&new_state] {
+                    costs.insert(new_state.clone(), new_cost);
+                    came_from.insert(new_state.clone(), Some((state.clone(), dir)));
+                    heap.insert(new_state, new_cost);
+                }
+            }
+        }
+    }
+
+
+    (None, Stats::new(expanded, start.elapsed()))
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
+    use super::*;
 
     #[test]
     fn test_search() {
-        use super::*;
-
-        // validates that search oes return the optimal plan on the first 20 isntances
-
         for (expected_cost, init) in &INSTANCES[0..20] {
-            let (path, stats) = search(*init);
+            let heuristic = Heuristic::Hamming;
+            let (path, stats) = search(*init, &heuristic);
             let path = path.expect("no plan");
             assert!(init.is_valid_plan(&path));
             assert_eq!(path.len(), *expected_cost as usize);
         }
     }
 }
+

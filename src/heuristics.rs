@@ -19,13 +19,32 @@ pub enum Heuristic {
 impl Heuristic {
     pub fn estimate(&self, board: &Board) -> u32 {
         match self {
-            // blind heuristic always returns 0
             Heuristic::Blind => 0,
             Heuristic::Hamming => {
-                todo!()
+                let mut count = 0;
+                for i in 0..N {
+                    for j in 0..N {
+                        let value = board.value_at(i, j);
+                        if value != 0 &&  value != Board::GOAL.value_at(i, j) {
+                            count += 1;
+                        }
+                    }
+                }
+                count
             }
             Heuristic::Manhattan => {
-                todo!()
+                let mut distance = 0;
+                for i in 0..N {
+                    for j in 0..N {
+                        let value = board.value_at(i, j);
+                        if value != 0 {
+                            let (goal_x, goal_y) = Board::GOAL.position(value);
+                            distance += (i as i32 - goal_x as i32).abs() as u32;
+                            distance += (j as i32 - goal_y as i32).abs() as u32;
+                        }
+                    }
+                }
+                distance
             }
         }
     }
@@ -39,7 +58,7 @@ mod tests {
         use super::*;
         let board = Board::new([[8, 7, 3], [2, 0, 5], [1, 4, 6]]);
         assert_eq!(Heuristic::Blind.estimate(&board), 0);
-        assert_eq!(Heuristic::Hamming.estimate(&board), todo!());
-        assert_eq!(Heuristic::Manhattan.estimate(&board), todo!());
+        assert_eq!(Heuristic::Hamming.estimate(&board), 7);
+        assert_eq!(Heuristic::Manhattan.estimate(&board), 14);
     }
 }
