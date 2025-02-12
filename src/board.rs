@@ -112,8 +112,19 @@ impl Board {
     /// Returs `true` if the given sequence of actions is a valid plan that leads to the goal state.
     pub fn is_valid_plan(&self, actions: &[Direction]) -> bool {
         let mut board = *self;
-        todo!("replay each of the moves in the actions array and see if ends in the goal state")
+
+        for &act in actions {
+            if let Some(new_board) = board.apply(act) {
+                board = new_board;
+            }
+            else {
+                return false ;
+            }
+        }
+        board == Board::GOAL
     }
+
+
 }
 
 // Specifies how to display a board in a human-readable way.
@@ -251,23 +262,33 @@ mod tests {
         assert_eq!(board.position(EMPTY_CELL), (2, 0));
         assert_eq!(board.value_at(2, 0), EMPTY_CELL);
 
-        assert_eq!(board.value_at(1, 1), todo!());
-        assert_eq!(board.value_at(2, 2), todo!());
-        assert_eq!(board.position(3), todo!());
-        assert_eq!(board.position(5), todo!());
+        assert_eq!(board.value_at(1, 1),5);
+        assert_eq!(board.value_at(2, 2), 8);
+        assert_eq!(board.position(3), (0,2) );
+        assert_eq!(board.position(5), (1,1));
+        assert_eq!(board.position(6), (1,2));
+
+
     }
 
     #[test]
     fn test_apply() {
         let board = Board::new([[1, 2, 3], [4, 5, 6], [0, 7, 8]]);
+        let board2 = Board::new([[0, 2, 3], [4, 5, 6], [1, 7, 8]]);
+
         assert_eq!(
             board.apply(Direction::Up),
             Some(Board::new([[1, 2, 3], [0, 5, 6], [4, 7, 8]]))
         );
         // what is the result of moving the empty cell right? was the `board` binding modified by the apply method?
-        assert_eq!(board.apply(Direction::Right), todo!());
+        assert_eq!(board.apply(Direction::Right), Some(Board::new([[1, 2, 3], [4, 5, 6], [7, 0, 8]])));
         // what is the result of moving the empty cell left?
-        assert_eq!(board.apply(Direction::Left), todo!());
+        assert_eq!(board.apply(Direction::Left), None);
+        // what is the result of moving the empty cell down?
+        assert_eq!(board2.apply(Direction::Down), Some(Board::new([[4, 2, 3], [0, 5, 6], [1, 7, 8]])));
+
+
+
     }
 
     #[test]
