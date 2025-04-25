@@ -139,23 +139,52 @@ impl Board {
 // This is what is used when you use the `{}` format specifier in a `println!` macro.
 impl std::fmt::Display for Board {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "\n┏━━━┳━━━┳━━━┓\n")?;
-        for i in 0..N {
+        // Determine cell width based on max value (N*N-1)
+        let max_val = (N * N - 1) as u32;
+        let digit_width = max_val.to_string().len();
+        // add padding of 2 (one space each side)
+        let cell_width = digit_width + 2;
+
+        // Top border
+        write!(f, "┏")?;
+        for col in 0..N {
+            write!(f, "{}", "━".repeat(cell_width))?;
+            write!(f, "{}", if col + 1 < N { "┳" } else { "┓\n" })?;
+        }
+
+        // Rows
+        for row in 0..N {
+            // Cell line
             write!(f, "┃")?;
-            for j in 0..N {
-                let value_in_cell = self.value_at(i, j);
-                if value_in_cell == 0 {
-                    write!(f, "   ┃")?;
+            for col in 0..N {
+                let v = self.value_at(row, col);
+                let content = if v == EMPTY_CELL {
+                    " ".repeat(cell_width)
                 } else {
-                    write!(f, " {value_in_cell} ┃")?;
+                    let s = v.to_string();
+                    let padding = cell_width - s.len();
+                    format!("{}{}", " ".repeat(padding), s)
+                };
+                write!(f, "{}┃", content)?;
+            }
+            write!(f, "\n")?;
+
+            // Separator or bottom border
+            if row + 1 < N {
+                write!(f, "┣")?;
+                for col in 0..N {
+                    write!(f, "{}", "━".repeat(cell_width))?;
+                    write!(f, "{}", if col + 1 < N { "╋" } else { "┫\n" })?;
+                }
+            } else {
+                write!(f, "┗")?;
+                for col in 0..N {
+                    write!(f, "{}", "━".repeat(cell_width))?;
+                    write!(f, "{}", if col + 1 < N { "┻" } else { "┛\n" })?;
                 }
             }
-            if i < N - 1 {
-                write!(f, "\n┣━━━╋━━━╋━━━┫\n")?;
-            } else {
-                write!(f, "\n┗━━━┻━━━┻━━━┛\n")?;
-            }
         }
+
         Ok(())
     }
 }

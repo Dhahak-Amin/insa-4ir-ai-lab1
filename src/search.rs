@@ -142,7 +142,6 @@ pub fn beam_search(
                 return Some(path.clone());
             }
         }
-        // Generate candidates
         let mut candidates = Vec::new();
         for (state, path, g) in &frontier {
             for &dir in &DIRECTIONS {
