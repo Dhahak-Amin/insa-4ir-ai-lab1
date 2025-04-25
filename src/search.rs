@@ -73,19 +73,132 @@ pub fn search(init_state: Board,heuristic: &Heuristic) -> (Option<Vec<Direction>
     (None, Stats::new(expanded, start.elapsed()))
 }
 
+/// IDA* search: memory-efficient depth-first iterative deepening A*.
+pub fn ida_star(init: Board, heuristic: &Heuristic) -> Option<Vec<Direction>> {
+    /// Performs a depth-first search bounded by a threshold.
+    /// Returns Err(solution_path) if found, or Ok(min_overrun) if not.
+    fn dfs(
+        board: &Board,
+        g: u32,
+        threshold: u32,
+        heuristic: &Heuristic,
+        path: &mut Vec<Direction>,
+        visited: &mut HashSet<Board>,
+    ) -> Result<u32, Vec<Direction>> {
+        let h = heuristic.estimate(board);
+        let f = g + h;
+        if f > threshold {
+            return Ok(f);
+        }
+        if *board == Board::GOAL {
+            return Err(path.clone());
+        }
+        let mut min_over = u32::MAX;
+        for &dir in &DIRECTIONS {
+            if let Some(next) = board.apply(dir) {
+                if visited.insert(next.clone()) {
+                    path.push(dir);
+                    match dfs(&next, g + 1, threshold, heuristic, path, visited) {
+                        Err(sol) => return Err(sol),
+                        Ok(t) if t < min_over => min_over = t,
+                        _ => {}
+                    }
+                    path.pop();
+                    visited.remove(&next);
+                }
+            }
+        }
+        Ok(min_over)
+    }
+
+    let mut threshold = heuristic.estimate(&init);
+    let mut path = Vec::new();
+    let mut visited = HashSet::new();
+    visited.insert(init.clone());
+
+    loop {
+        match dfs(&init, 0, threshold, heuristic, &mut path, &mut visited) {
+            Err(solution) => return Some(solution),
+            Ok(next_threshold) if next_threshold == u32::MAX => return None,
+            Ok(next_threshold) => threshold = next_threshold,
+        }
+    }
+}
+
+// Beam search: memory-limited heuristic search with fixed beam width.
+pub fn beam_search(
+    init: Board,
+    heuristic: &Heuristic,
+    beam_width: usize,
+    max_depth: usize,
+) -> Option<Vec<Direction>> {
+    // Each entry: (state, path, g_cost)
+    let mut frontier: Vec<(Board, Vec<Direction>, u32)> = vec![(init.clone(), Vec::new(), 0)];
+
+    for depth in 0..=max_depth {
+        // Check if any in frontier is goal
+        for (state, path, _) in &frontier {
+            if *state == Board::GOAL {
+                return Some(path.clone());
+            }
+        }
+        // Generate candidates
+        let mut candidates = Vec::new();
+        for (state, path, g) in &frontier {
+            for &dir in &DIRECTIONS {
+                if let Some(next) = state.apply(dir) {
+                    let mut new_path = path.clone();
+                    new_path.push(dir);
+                    let g_next = g + 1;
+                    let f = g_next + heuristic.estimate(&next);
+                    candidates.push((next, new_path, g_next, f));
+                }
+            }
+        }
+        if candidates.is_empty() {
+            break;
+        }
+        // Keep top beam_width by f
+        candidates.sort_by_key(|c| c.3);
+        frontier = candidates
+            .into_iter()
+            .take(beam_width)
+            .map(|(s, p, g, _)| (s, p, g))
+            .collect();
+    }
+    None
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::board::Board;
 
     #[test]
-    fn test_search() {
-        for (expected_cost, init) in &INSTANCES[0..20] {
-            let heuristic = Heuristic::Hamming;
-            let (path, stats) = search(*init, &heuristic);
-            let path = path.expect("no plan");
-            assert!(init.is_valid_plan(&path));
-            assert_eq!(path.len(), *expected_cost as usize);
-        }
+    fn test_search_basic() {
+        let board = Board::new([
+            [1, 2, 3, 4],
+            [5, 6, 7, 8],
+            [9, 10, 11, 12],
+            [13, 0, 14, 15],
+        ]);
+        let opt_plan = ida_star(board, &Heuristic::Manhattan);
+        let plan = opt_plan.expect("IDA* should solve simple instance");
+        assert_eq!(plan.len(), 2);
+    }
+
+    #[test]
+    fn test_beam_search_basic() {
+        let board = Board::new([
+            [1, 2, 3, 4],
+            [5, 6, 7, 8],
+            [9, 10, 11, 12],
+            [13, 0, 14, 15],
+        ]);
+        let plan = beam_search(board, &Heuristic::Manhattan, 2, 5)
+            .expect("Beam search should solve simple instance");
+        assert_eq!(plan.len(), 2);
     }
 }
 

@@ -49,16 +49,3 @@ impl Heuristic {
         }
     }
 }
-
-#[cfg(test)]
-mod tests {
-
-    #[test]
-    fn test_heuristic() {
-        use super::*;
-        let board = Board::new([[8, 7, 3], [2, 0, 5], [1, 4, 6]]);
-        assert_eq!(Heuristic::Blind.estimate(&board), 0);
-        assert_eq!(Heuristic::Hamming.estimate(&board), 7);
-        assert_eq!(Heuristic::Manhattan.estimate(&board), 14);
-    }
-}

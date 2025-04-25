@@ -1,35 +1,33 @@
-#![allow(unused)] // suppress warnings for unused code (there is plenty when you start)
-
-// declare other modules that are in other files and must be compiled
+// exemple d'utilisation dans main.rs
 mod board;
 mod heuristics;
 mod min_heap;
 mod search;
 
-// import the content of the modules
-use board::*;
-use heuristics::*;
-use search::*;
-/// Represents an empty cell in the board.
-pub const EMPTY_CELL: Cell = 0;
+use board::Board;
+use heuristics::Heuristic;
+use search::{ida_star, beam_search};
 
 fn main() {
-    // 1. Créer le plateau initial
-    let initial_board = Board::new([[1, 2, 3], [4, 8, 5], [EMPTY_CELL, 7, 6]]);
+    let initial = Board::random(30);
+    println!("Board initial :\n{}", initial);
 
-    use Direction :: * ;
-    let actions = [Right,Up,Right,Down];
+    // A* (si mémoire disponible)
+    // let (plan, stats) = search(initial.clone(), &Heuristic::Manhattan);
 
-
-    initial_board.play(&actions);
-
-    if  initial_board.is_valid_plan(&actions) {
-        println!("Yiiiiikes, ur Actions work !");
-    } else
-    {
-        println!("Naaah Hoomie, try again ");
-
+    // IDA*
+    if let Some(plan) = ida_star(initial.clone(), &Heuristic::Manhattan) {
+        println!("Yess IDA* solution en {} coups", plan.len());
+        initial.play(&plan);
+    } else {
+        println!("IDA* n'a pas trouvé de solution");
     }
 
-
+    // Beam Search (beam_width=100, max_depth=50)
+    if let Some(plan) = beam_search(initial, &Heuristic::Manhattan, 100, 50) {
+        println!("Yess, Beam Search a trové une solution en {} coups", plan.len());
+        // initial.play(&plan); // ou joue si tu veux
+    } else {
+        println!("Beam Search n'a pas trouvé de solution");
+    }
 }
